@@ -614,7 +614,7 @@
         const itemId = event.target.querySelector('input[type="checkbox"]').id;
         event.dataTransfer.setData('text/plain', itemId);
         event.dataTransfer.effectAllowed = 'move';
-        isCtrlPressed = event.ctrlKey;
+        isCtrlPressed = event.ctrlKey || event.altKey;
     }
 
     function handleDragOver(event) {
