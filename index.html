@@ -478,12 +478,13 @@
 
     function updateItemText(label, input, noteId) {
         const newText = input.value.trim();
+        const itemId = label.htmlFor;
         if (newText) {
             label.textContent = newText;
             input.replaceWith(label);
             saveChecklistState(noteId); // Save updated text to local storage
         } else {
-            // Handle empty input (e.g., revert to original text or delete item)
+            deleteItem(noteId, itemId); // Handle empty input by deleting the Item
         }
     }
 
