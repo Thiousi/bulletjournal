@@ -21,6 +21,7 @@
             --color-focus: #ca8a04;
             --color-inactive: #71717a;
             --color-highlight: #fde68a;
+            --color-success: #4ade80;
         }
         [data-theme="dark"] {
             --color-background: #18181b;
@@ -30,6 +31,7 @@
             --color-focus: #fde68a;
             --color-inactive: #a1a1aa;
             --color-highlight: #ca8a04;
+            --color-success: #4ade80;
         }
         [data-theme="dark"] *, [data-theme="light"] * {
             transition: all 0.3s, color 0.3s;
@@ -73,7 +75,7 @@
         }
         
         .plan {
-            padding: 1rem;
+            padding: .5rem;
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             grid-template-rows: 66% auto;
@@ -115,7 +117,8 @@
 
         .checklist-item {
             display: flex;
-            align-items: center;
+            align-items: start;
+            justify-content: space-between;
             padding: 5px;
             transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
             cursor: pointer;
@@ -128,10 +131,13 @@
         .checklist input[type="checkbox"] {
             margin-right: 5px;
             cursor: pointer;
+            color: var(--color-day-background);
+            accent-color: var(--color-success);
         }
 
         .checklist label {
             margin: 0;
+            flex-grow: 1;
             line-height: normal;
             font-size: 1rem;
             font: inherit;
@@ -151,6 +157,16 @@
         .checklist input[type="checkbox"]:checked + label {
             text-decoration: line-through; 
             color: var(--color-inactive); 
+        }
+        .edit-input {
+            margin: 0;
+            padding:0;
+            font: inherit;
+            width: 100%;
+            resize: none;
+            border: none;
+            outline: none;
+            overflow: hidden;
         }
 
         input[type="text"] {
@@ -427,12 +443,48 @@
             saveChecklistState(noteId);
         });
 
+        // Add click event listener to label for editing
+        label.addEventListener('click', function() {
+            if (!checkbox.checked) {
+                editItemText(label, noteId);
+            }
+        });
+
         if (text === '') {
             // Clear input field if this is a new item
             document.getElementById(noteId + '-new-item').value = '';
         }
 
         saveChecklistState(noteId); // Save state after adding new item
+    }
+
+    function editItemText(label, noteId) {
+        const currentText = label.textContent;
+        const input = document.createElement('textarea');
+        input.classList.add('edit-input');
+        input.type = 'text';
+        input.rows = '4';
+        input.value = currentText;
+        input.onblur = function() { updateItemText(label, input, noteId); }; // Update text when input loses focus
+        input.onkeypress = function(event) { 
+            if (event.key === 'Enter') {
+                updateItemText(label, input, noteId);
+            }
+        };
+
+        label.replaceWith(input);
+        input.focus();
+    }
+
+    function updateItemText(label, input, noteId) {
+        const newText = input.value.trim();
+        if (newText) {
+            label.textContent = newText;
+            input.replaceWith(label);
+            saveChecklistState(noteId); // Save updated text to local storage
+        } else {
+            // Handle empty input (e.g., revert to original text or delete item)
+        }
     }
 
     function saveChecklistState(noteId) {
