@@ -24,6 +24,7 @@
             --color-day-background: rgba(0,0,0, .075);
             --color-day-border: var(--color-background);
             --color-day-text: #030712;
+            --color-placeholder: #4b5563;
             --color-focus: 202, 138, 4;
             --color-inactive: #71717a;
             --color-highlight: #fde68a;
@@ -34,6 +35,7 @@
             --color-day-background: rgba(255,255,255, .075);
             --color-day-border: var(--color-background);
             --color-day-text: #ddd;
+            --color-placeholder: #71717a;
             --color-focus: 253, 230, 138;
             --color-inactive: #a1a1aa;
             --color-highlight: #ca8a04;
@@ -289,6 +291,23 @@
             transform: scale(0.85);
             transition: transform 0.2s ease-in-out;
         }
+        .add-item {
+            text-align: left;
+            border: none;
+            background: none;
+            padding: 10px;
+            color: var(--color-placeholder);
+            font-size: 12px;
+            cursor: pointer;
+            border-top: 1px solid var(--color-day-border);
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .section:hover .add-item {
+            opacity: 1;
+            visibility: visible;
+        }
         /* Mobile mode */
         html.mobile section:not(.current-day), html.mobile .top-bar button:not(.mobile) {
             display: none;
@@ -377,7 +396,7 @@
                             </div>
                         </template>
                     </div>
-                    <button x-on:click="addItem(section)">Add Item</button>
+                    <button x-on:click="addItem(section)" class="add-item">Add new item...</button>
                 </section>
             </template>
         </div>
