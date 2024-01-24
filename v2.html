@@ -2,11 +2,12 @@
 <html lang="en" data-theme="dark">
 <head>
     <title>Bullet Journal</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.4/dist/cdn.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js" integrity="sha512-UXumZrZNiOwnTcZSHLOfcTs0aos2MzBWHXOHOuB0J/R44QB0dwY5JgfbvljXcklVf65Gc4El6RjZ+lnwd2az2g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <link rel="icon"
         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAE1SURBVHgB7ZdBDoIwEEWn6IJluQFLj+MNjCdQT6BbV8YTyA30RnID2LrCmRiVNMAMdLQs+IlJJe28z0wZigGhkiSpoIeKojCSeREE1txauzHGHHBsmyZI76RNHZnLq6o6RwjftsF/rBTZeypBCuFkw+8B94Jvzbl47p4YXwbapJ2Zt4JnYDKgbgA76wp3eoG/O46X3HxVAwTH7pbBq7NSp7twa9QM1OB1ldw6FQMtcMCXzY5byxqgOnbVtAO+LsvyxsVnDWDwE3xreiWgEJ6BQJJOaB1DGYI/Y/CAk9gMNNWRwBpwkQEKSIG5eUPgIgMSE0PhYgNdJnzgvQw4JnL66wsnGfeEIn3v45NgEc52OldqJ6Ih8CZN5wHT95tPW6MogcpmGqh8FsfxA/v6Av7/fUh95PgEIROb9L5bVT0AAAAASUVORK5CYII="
     >
@@ -56,6 +57,11 @@
             font-size: .875rem;
             background: var(--color-background);
             height: 100vh;
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        body::-webkit-scrollbar, .plan::-webkit-scrollbar {
+            display: none;
         }
         .top-bar {
             display: flex;
@@ -172,15 +178,23 @@
             margin-top: 10px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             border-radius: 4px;
-            transition: transform 0.3s ease-out, opacity 0.3s ease-in;
+            transition: transform 0.5s ease-out, opacity 0.3s ease-in;
+            cursor: pointer;
         }
         .notification-enter-start, .notification-leave-end {
             opacity: 0;
-            transform: scale(0.95);
+        }
+        .notification-enter-start {
+            transform: translateY(0.5rem);
+        }
+        .notification-leave-end {
+            transform: translateX(100%);
         }
         .notification-enter-end, .notification-leave-start {
             opacity: 1;
-            transform: scale(1);
+        }
+        .notification-leave-start {
+            transform: translateX(0px);
         }
 
         .heading {
@@ -258,17 +272,6 @@
             outline: 0;
             animation: pulse 1.5s 1;
         }
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(var(--color-focus), 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(var(--color-focus), 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-            }
-        }
         .icon-wrapper {
             display: flex;
             align-items: center;
@@ -309,23 +312,55 @@
             opacity: 1;
             visibility: visible;
         }
+        .bounce-left-right {
+            animation: bounceLeftRight 0.5s ease; 
+        }
+        .bounce-right-left {
+            animation: bounceRightLeft 0.5s ease; 
+        }
         /* Mobile mode */
-        html.mobile section:not(.current-day), html.mobile .top-bar button:not(.mobile) {
+        html.mobile section {
+            flex: 0 0 auto; /* Don't grow, don't shrink, and don't collapse */
+            scroll-snap-align: center;
+        }
+        html.mobile .top-bar button:not(.mobile) {
             display: none;
         }
         html.mobile .plan{
             display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
         }
-
+        /* Animations */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(var(--color-focus), 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(var(--color-focus), 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+            }
+        }
+        @keyframes bounceRightLeft {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-50px); } 
+        }
+        @keyframes bounceLeftRight {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(50px); } 
+        }
     </style>
 </head>
-<body x-data="checklistComponent()"x-init="init()" @user-auth-changed.window="handleUserAuthChange($event.detail.user)">
+<body x-data="checklistComponent()" @user-auth-changed.window="handleUserAuthChange($event.detail.user)">
     <nav class="top-bar">
         <span id="info-display" x-text="'Bullet Journal - ' + currentDate"></span>
         <div id="buttons">
             <button @click="confirmDeletion('deleteWeekItems')">Delete Week</button>
             <button @click="confirmDeletion('deleteAllItems')">Delete All</button>
-            <div x-data="authComponent()" x-init="init">
+            <div x-data="authComponent()">
                 <button x-on:click="isLoggedIn ? logout() : login()" class="mobile" :title="isLoggedIn ? 'Logout' : 'Login'">
                     <template x-if="isLoggedIn">
                         <span>
@@ -363,11 +398,12 @@
     </nav>
     <main>
         <div class="plan">
-            <template x-for="(items, section) in sections" :key="section">
+            <template x-for="([section, items], index) in Object.entries(sections)" :key="section">
                 <section class="section"
                         :class="(section.includes('Month') ? 'month' : 'day') + 
                             (isHighlighted(section) ? ' highlighted' : '') + 
                             (isCurrentSection(section) ? ' current-day' : '')" 
+                        :id="`section-${index}`"
                         @dragover.prevent="dragOver($event)" 
                         @dragleave="dragLeave($event)" 
                         @drop="drop($event, section)" 
@@ -431,17 +467,16 @@
             @notify.window="addNotification($event.detail.message)">
             <template x-for="notification in notifications" :key="notification.id">
               <div x-show="notification.show" x-transition:enter="transition ease-out duration-300"
-                   x-transition:enter-start="transform opacity-0 scale-95"
-                   x-transition:enter-end="transform opacity-100 scale-100"
-                   x-transition:leave="transition ease-in duration-300"
-                   x-transition:leave-start="transform opacity-100 scale-100"
-                   x-transition:leave-end="transform opacity-0 scale-95"
+                   x-transition:enter-start="notification-enter-start"
+                   x-transition:enter-end="notification-enter-end"
+                   x-transition:leave=""
+                   x-transition:leave-start="notification-enter-end"
+                   x-transition:leave-end="notification-enter-start"
                    class="notification" @click="dismissNotification(notification.id)">
                 <p x-text="notification.message"></p>
               </div>
             </template>
           </div>
-          
     </main>
 </body>
 <script>
@@ -460,6 +495,7 @@
     function checklistComponent() {
         return {
             currentUser: null,
+            currentSectionIndex: 0,
             sections: {
                 monday: [],
                 tuesday: [],
@@ -473,6 +509,12 @@
             
             init() {
                 this.setCurrentDate();
+                Object.keys(this.sections).forEach((section, index) => {
+                        if (this.isCurrentSection(section)) {
+                            this.currentSectionIndex = index;
+                        }
+                });
+                this.setupSwipeGestures();
             },
             async handleUserAuthChange(user) {
                 this.currentUser = user;
@@ -744,6 +786,43 @@
                 this.showModal = false;
                 this.pendingAction = null;
             },
+            setupSwipeGestures() {
+                var planContainer = document.querySelector('.plan');
+                var hammer = new Hammer(planContainer);
+                hammer.on('swipeleft swiperight', (ev) => {
+                    this.handleSwipeGesture(ev.type);
+                });
+                this.scrollToCurrentSection(100);
+            },
+            handleSwipeGesture(direction) {
+                const maxIndex = Object.keys(this.sections).length - 1;
+                if (direction === 'swipeleft' && this.currentSectionIndex < maxIndex) {
+                    this.currentSectionIndex++;
+                    this.scrollToCurrentSection(0);
+                } else if (direction === 'swiperight' && this.currentSectionIndex > 0) {
+                    this.currentSectionIndex--;
+                    this.scrollToCurrentSection(0);
+                } else {
+                    this.triggerBounceEffect(direction);
+                }
+            },
+            scrollToCurrentSection(timeout) {
+                setTimeout(() => {
+                    const currentSection = document.getElementById(`section-${this.currentSectionIndex}`);
+                    if (currentSection) {
+                        currentSection.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                    }
+                }, timeout)
+            },
+            triggerBounceEffect(direction) {
+                const planContainer = document.querySelector('.plan');
+                const bounceClass = direction === 'swipeleft' ? 'bounce-right-left' : 'bounce-left-right';
+                planContainer.classList.add(bounceClass);
+            
+                setTimeout(() => {
+                    planContainer.classList.remove(bounceClass);
+                }, 500); // Match this timeout with the animation duration
+            }
         };
     }
 
@@ -811,6 +890,9 @@
             toggleMobile() {
                 this.isMobile = !this.isMobile;
                 this.updateHtmlClass();
+                this.$dispatch('notify', {
+                    message: `Display changed to ${this.isMobile ? 'Mobile' : 'Desktop'} mode`
+                });
             },
 
             updateHtmlClass() {
@@ -839,7 +921,7 @@
             // Automatically dismiss notification after 5 seconds
             setTimeout(() => {
               this.dismissNotification(id);
-            }, 5000);
+            }, 2000);
           },
       
           dismissNotification(id) {
