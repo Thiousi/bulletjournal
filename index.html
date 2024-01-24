@@ -2,8 +2,14 @@
 <html lang="en" data-theme="dark">
 <head>
     <title>Bullet Journal</title>
-    <link rel="icon"
-        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAE1SURBVHgB7ZdBDoIwEEWn6IJluQFLj+MNjCdQT6BbV8YTyA30RnID2LrCmRiVNMAMdLQs+IlJJe28z0wZigGhkiSpoIeKojCSeREE1txauzHGHHBsmyZI76RNHZnLq6o6RwjftsF/rBTZeypBCuFkw+8B94Jvzbl47p4YXwbapJ2Zt4JnYDKgbgA76wp3eoG/O46X3HxVAwTH7pbBq7NSp7twa9QM1OB1ldw6FQMtcMCXzY5byxqgOnbVtAO+LsvyxsVnDWDwE3xreiWgEJ6BQJJOaB1DGYI/Y/CAk9gMNNWRwBpwkQEKSIG5eUPgIgMSE0PhYgNdJnzgvQw4JnL66wsnGfeEIn3v45NgEc52OldqJ6Ih8CZN5wHT95tPW6MogcpmGqh8FsfxA/v6Av7/fUh95PgEIROb9L5bVT0AAAAASUVORK5CYII=">
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.4/dist/cdn.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js" integrity="sha512-UXumZrZNiOwnTcZSHLOfcTs0aos2MzBWHXOHOuB0J/R44QB0dwY5JgfbvljXcklVf65Gc4El6RjZ+lnwd2az2g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="icon" href="images/icons/icon-72x72.png" >
+    <link rel="manifest" href="manifest.json">
     <style>
     
         * {
@@ -19,6 +25,7 @@
             --color-day-background: rgba(0,0,0, .075);
             --color-day-border: var(--color-background);
             --color-day-text: #030712;
+            --color-placeholder: #4b5563;
             --color-focus: 202, 138, 4;
             --color-inactive: #71717a;
             --color-highlight: #fde68a;
@@ -29,6 +36,7 @@
             --color-day-background: rgba(255,255,255, .075);
             --color-day-border: var(--color-background);
             --color-day-text: #ddd;
+            --color-placeholder: #71717a;
             --color-focus: 253, 230, 138;
             --color-inactive: #a1a1aa;
             --color-highlight: #ca8a04;
@@ -37,7 +45,9 @@
         [data-theme="dark"] *, [data-theme="light"] * {
             transition: all 0.3s, color 0.3s;
         }
-
+        [x-cloak] {
+            display: none !important;
+        }
         body {
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
             display: flex;
@@ -45,7 +55,12 @@
             line-height: 1;
             font-size: .875rem;
             background: var(--color-background);
-            height: 100vh;
+            height: 100dvh;
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        body::-webkit-scrollbar, .plan::-webkit-scrollbar {
+            display: none;
         }
         .top-bar {
             display: flex;
@@ -53,15 +68,21 @@
             align-items: center;
             padding: 10px;
             background-color: var(--color-day-background);
-        }
-        .top-bar #info-display {
             color: var(--color-day-text);
+        }
+        .top-bar #info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+        }
+        .top-bar #title {
             font-size: 1.2rem;
             font-weight: 600;
         }
-        .top-bar div{
+        .top-bar #buttons{
             display: flex;
-            gap: 15px;
+            gap: 10px;
         }
         .top-bar button {
             cursor: pointer;
@@ -74,6 +95,10 @@
             border-color: rgb(var(--color-focus));
             color: rgb(var(--color-focus));
         }
+        main {
+            display: flex;
+            height: 100dvh;
+        }
         
         .plan {
             padding: .5rem;
@@ -84,20 +109,115 @@
             flex-basis: 100%;
             flex-grow: 1;
         }
-        
+        .modal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            z-index: 100;
+            width: 100%;
+            height: 100%;
+        }
+        .modal-inner {
+            background-color: var(--color-background);
+            color: var(--color-day-text);
+            border-radius: 0.5em;
+            padding: 2em;
+            margin: auto;
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--color-day-text);
+            margin-bottom: 2em;
+        }
+        .modal-actions {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            margin-top: 2em;
+            align-items: center;
+            justify-content: end;
+        }
+        .modal-button {
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .modal-button-confirm {
+            background: none;
+        }
+        .modal-button-confirm:hover {
+            background-color: var(--color-day-background);
+        }
+        .modal-button-cancel {
+            background-color: rgba(var(--color-focus), 0.85);
+            color: var(--color-background);
+        }
+        .modal-button-cancel:hover {
+            background-color: rgba(var(--color-focus), 1);
+        }
+        .overlay {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: var(--color-day-text);
+            opacity: 0.75;
+        }
+        .notification-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .notification {
+            background-color: white;
+            color: black;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            transition: transform 0.5s ease-out, opacity 0.3s ease-in;
+            cursor: pointer;
+        }
+        .notification-enter-start, .notification-leave-end {
+            opacity: 0;
+        }
+        .notification-enter-start {
+            transform: translateY(0.5rem);
+        }
+        .notification-leave-end {
+            transform: translateX(100%);
+        }
+        .notification-enter-end, .notification-leave-start {
+            opacity: 1;
+        }
+        .notification-leave-start {
+            transform: translateX(0px);
+        }
+
         .heading {
-            padding-bottom: .5rem;
             border-bottom: 1px solid var(--color-day-border);
+            gap: 0;
             font-weight: 400;
             padding: .5rem;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             text-transform: uppercase;
-            font-size: 0.85rem;
+            font-size: 14px;
             letter-spacing: .05em;
         }
-        
-        .notes {
+        .heading span {
+            flex-grow: 1;
+        }
+        .section {
             width: 100%;
             display: flex;
             flex-direction: column;
@@ -105,85 +225,145 @@
             color: var(--color-day-text);
             background: var(--color-day-background);
         }
-
         .highlighted {
             background: var(--color-highlight);
         }
         .current-day {
             border: 1px solid var(--color-highlight);
         }
-                
         .month {
             grid-column: span 3;
-        }
-
-        .checklist-item {
-            display: flex;
-            align-items: start;
-            justify-content: space-between;
-            padding: 5px;
-            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-            cursor: pointer;
-        }
-        .checklist-item.remove {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-
-        .checklist input[type="checkbox"] {
-            margin-right: 5px;
-            cursor: pointer;
-            color: var(--color-day-background);
-            accent-color: var(--color-success);
-        }
-
-        .checklist label {
-            margin: 0;
-            flex-grow: 1;
-            line-height: normal;
-            font-size: 1rem;
-            font: inherit;
-            color: var(--color-day-text);
-            cursor: pointer;
-            text-overflow: ellipsis;
-        }
+        }        
         .checklist {
             padding: 5px;
             flex-grow: 1;
             overflow-y: auto;
             margin-bottom: 5px;
         }
-        .checklist label:hover {
-            color: rgb(var(--color-focus))
+        .checklist-item {
+            display: flex;
+            align-items: start;
+            justify-content: space-between;
+            padding: 5px 0;
+            cursor: pointer;
         }
-        .checklist input[type="checkbox"]:checked + label {
+        input[type="checkbox"] {
+            margin-right: 5px;
+            cursor: pointer;
+            color: var(--color-day-background);
+            accent-color: var(--color-success);
+        }
+        .checklist-item input[type="checkbox"]:checked + textarea {
             text-decoration: line-through; 
             color: var(--color-inactive); 
         }
-        .edit-input {
+        textarea {
+            width: 100%;
+            height: 16px;
             margin: 0;
             padding:0;
-            font: inherit;
-            width: 100%;
-            resize: none;
-            border: none;
-            outline: none;
-            overflow: hidden;
-        }
-
-        input[type="text"] {
-            width: 100%; 
-            padding: .5rem;
-            margin: 10px 0; 
+            font: inherit; 
             box-sizing: border-box; 
             border: none;
             background: none;
+            resize: none;
+            outline: none;
+            overflow: hidden;
+            font-size: 12px;
+            line-height: normal;
+            flex-grow: 1;
             color: var(--color-day-text);
         }
-        input[type="text"]:focus {
+        textarea:hover {
+            color: rgb(var(--color-focus))
+        }
+        textarea:focus {
             outline: 0;
             animation: pulse 1.5s 1;
         }
+        .icon-wrapper {
+            display: flex;
+            align-items: end;
+            gap:0;
+            transform: scale(0.55);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+        }
+        .section:hover .icon-wrapper {
+            opacity: 1;
+            transform: scale(1);
+            visibility: visible;
+        }
+        .icon {
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--color-day-text);
+            transition: transform 0.2s ease-in-out;
+        }
+        .icon:hover {
+            transform: scale(0.85);
+        }
+        .add-item {
+            text-align: left;
+            border: none;
+            background: none;
+            padding: 10px;
+            color: var(--color-placeholder);
+            font-size: 12px;
+            cursor: pointer;
+            border-top: 1px solid var(--color-day-border);
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .section:hover .add-item {
+            opacity: 1;
+            visibility: visible;
+        }
+        .bounce-left-right {
+            animation: bounceLeftRight 0.5s ease; 
+        }
+        .bounce-right-left {
+            animation: bounceRightLeft 0.5s ease; 
+        }
+        /* Mobile mode */
+        html.mobile .top-bar button:not(.mobile) {
+            display: none;
+        }
+        html.mobile .plan{
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+        html.mobile section {
+            flex: 0 0 auto; /* Don't grow, don't shrink, and don't collapse */
+            scroll-snap-align: center;
+        }
+        html.mobile section .icon-wrapper {
+            opacity: 1;
+            transform: scale(1);
+            visibility: visible;
+            gap: 10px;
+        }
+        html.mobile section svg {
+            width: 20px;
+            height: 20px;
+        }
+        html.mobile section .checklist-item {
+            align-items: center;
+            padding: 5px;
+        }
+        html.mobile section .checklist-item textarea{
+            font-size: 14px;
+        }
+        html.mobile section .add-item {
+            opacity: 1;
+            visibility: visible;
+        }
+        /* Animations */
         @keyframes pulse {
             0% {
                 box-shadow: 0 0 0 0 rgba(var(--color-focus), 0.7);
@@ -195,625 +375,636 @@
                 box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
             }
         }
-        .icon-wrapper {
-            display: flex;
-            align-items: center;
-            gap:5px;
-            transform: scale(0.55);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+        @keyframes bounceRightLeft {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-50px); } 
         }
-        .notes:hover .icon-wrapper {
-            opacity: 1;
-            transform: scale(1);
-            visibility: visible;
+        @keyframes bounceLeftRight {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(50px); } 
         }
-        .icon {
-            cursor: pointer;
-        }
-        .icon:hover {
-            transform: scale(0.85);
-            transition: transform 0.2s ease-in-out;
-        }
-        /* Mobile mode */
-        html.mobile section:not(.current-day), html.mobile .top-bar button:not(.mobile) {
-            display: none;
-        }
-        html.mobile .plan{
-            display: flex;
-        }
-
     </style>
 </head>
-<body>
-    <div class="top-bar">
-        <span id="info-display">Bullet Journal - </span>
-        <div id="buttons">
-            <button id="delete-week" onclick="confirmDeletion(deleteWeekItems)">Delete Week</button>
-            <button id="delete-all-items" onclick="confirmDeletion(deleteAllItems)">Delete All</button>
-            <button
-                id="download-button"    
-                type="button"
-                aria-label="Download Data"
-                title="Download Data"
-                onclick="downloadDataAsJson()"
-                >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" class="icon">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                  </svg>
-            </button>
-            <button
-                id="load-file-button"
-                type="button"
-                title="Load Data from disk"
-                aria-label="Load Data from disk"
-                onclick="loadDataFromJson()"
-                >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" class="icon">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                  </svg>                  
-            </button>
-            <button
-                type="button"
-                class="mobile"
-                data-mobile-toggle
-                title="Change to mobile version"
-                aria-label="Change to mobile version">
-            </button>
-            <button
-                type="button"
-                class="mobile"
-                data-theme-toggle
-                title="Change to light theme"
-                aria-label="Change to light theme">
-            </button>
-            <input type="file" id="file-input" accept=".json" style="display: none;" onchange="loadDataFromJson()">
+<body x-data="checklistComponent()" 
+    @user-auth-changed.window="handleUserAuthChange($event.detail.user)"
+    @action.window="executeAction($event.detail.action)">
+    <nav class="top-bar">
+        <div id="info">
+            <h1 id="title">Bullet Journal</h1>
+            <span id="date" x-text=currentDate x-cloak></span>
         </div>
-    </div>
-    <form class="plan">
-    </form>
+        <div id="buttons">
+            <button @click="confirmDeletion('deleteWeekItems')">Delete Week</button>
+            <button @click="confirmDeletion('deleteAllItems')">Delete All</button>
+            <div x-data="authComponent()">
+                <button x-on:click="isLoggedIn ? logout() : login()" class="mobile" :title="isLoggedIn ? 'Logout' : 'Login'">
+                    <template x-if="isLoggedIn">
+                        <span>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" class="icon"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" /></svg>
+                        </span>
+                    </template>
+                    <template x-if="!isLoggedIn">
+                        <span>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" class="icon"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
+                        </span>
+                    </template>
+                </button>
+            </div>
+            <div x-data="mobileToggleComponent()" x-init="init">
+                <button @click="toggleMobile()" class="mobile" :title="isMobile ? 'Week view' : 'Day view'">
+                    <template x-if="isMobile">
+                        <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="icon"><g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g> <path fill-rule="evenodd" d="M5,22 C3.34314575,22 2,20.6568542 2,19 L2,7 C2,5.34314575 3.34314575,4 5,4 L6,4 L6,3 C6,2.44771525 6.44771525,2 7,2 C7.55228475,2 8,2.44771525 8,3 L8,4 L16,4 L16,3 C16,2.44771525 16.4477153,2 17,2 C17.5522847,2 18,2.44771525 18,3 L18,4 L19,4 C20.6568542,4 22,5.34314575 22,7 L22,19 C22,20.6568542 20.6568542,22 19,22 L5,22 Z M8,17 L4,17 L4,19 C4,19.5522847 4.44771525,20 5,20 L8,20 L8,17 Z M14,17 L10,17 L10,20 L14,20 L14,17 Z M20,17 L16,17 L16,20 L19,20 C19.5522847,20 20,19.5522847 20,19 L20,17 Z M8,12 L4,12 L4,15 L8,15 L8,12 Z M14,12 L10,12 L10,15 L14,15 L14,12 Z M20,12 L16,12 L16,15 L20,15 L20,12 Z M6,6 L5,6 C4.44771525,6 4,6.44771525 4,7 L4,10 L20,10 L20,7 C20,6.44771525 19.5522847,6 19,6 L18,6 L18,7 C18,7.55228475 17.5522847,8 17,8 C16.4477153,8 16,7.55228475 16,7 L16,6 L8,6 L8,7 C8,7.55228475 7.55228475,8 7,8 C6.44771525,8 6,7.55228475 6,7 L6,6 Z"></path> </g></svg>
+                    </template>
+                    <template x-if="!isMobile">
+                        <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="icon"><g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g><path fill-rule="evenodd" d="M17,2 C17.5522847,2 18,2.44771525 18,3 L18,4 L19,4 C20.6568542,4 22,5.34314575 22,7 L22,19 C22,20.6568542 20.6568542,22 19,22 L5,22 C3.34314575,22 2,20.6568542 2,19 L2,7 C2,5.34314575 3.34314575,4 5,4 L6,4 L6,3 C6,2.44771525 6.44771525,2 7,2 C7.55228475,2 8,2.44771525 8,3 L8,4 L16,4 L16,3 C16,2.44771525 16.4477153,2 17,2 Z M20,12 L4,12 L4,19 C4,19.5522847 4.44771525,20 5,20 L19,20 C19.5522847,20 20,19.5522847 20,19 L20,12 Z M17,14 C17.5522847,14 18,14.4477153 18,15 L18,17 C18,17.5522847 17.5522847,18 17,18 L15,18 C14.4477153,18 14,17.5522847 14,17 L14,15 C14,14.4477153 14.4477153,14 15,14 L17,14 Z M6,6 L5,6 C4.44771525,6 4,6.44771525 4,7 L4,10 L20,10 L20,7 C20,6.44771525 19.5522847,6 19,6 L18,6 L18,7 C18,7.55228475 17.5522847,8 17,8 C16.4477153,8 16,7.55228475 16,7 L16,6 L8,6 L8,7 C8,7.55228475 7.55228475,8 7,8 C6.44771525,8 6,7.55228475 6,7 L6,6 Z"></path> </g></svg>
+                    </template>
+                </button>
+            </div> 
+            <div x-data="themeToggleComponent()" x-init="init">
+                <button @click="toggleTheme()" class="mobile" :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"> 
+                    <template x-if="isDark">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" class="icon"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" /></svg>
+                    </template>
+                    <template x-if="!isDark">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" class="icon"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" /></svg>
+                    </template>
+                </button>
+            </div>            
+        </div>
+    </nav>
+    <main>
+        <div class="plan">
+            <template x-for="([section, items], index) in Object.entries(sections)" :key="section">
+                <section class="section"
+                        :class="(section.includes('Month') ? 'month' : 'day') + 
+                            (isHighlighted(section) ? ' highlighted' : '') + 
+                            (isCurrentSection(section) ? ' current-day' : '')" 
+                        :id="`section-${index}`"
+                        @dragover.prevent="dragOver($event)" 
+                        @dragleave="dragLeave($event)" 
+                        @drop="drop($event, section)" 
+                        :data-section="section">
+                    <div class="heading">
+                        <span x-text="section.includes('Month') ? getMonthName(section) : section"></span>
+                        <div class="icon-wrapper">
+                            <button @click="deleteItemsForSection(section)" class="icon" title="Delete all items for this day">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                            </button>
+                            <button @click="removeCheckedItems(section)" class="icon" title="Delete all checked items for this day">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" height="16" width="16">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                </svg>                              
+                            </button>
+                        </div>
+                    </div>
+                    <div class="checklist" @click="addItemToChecklist($event, section)" x-transition>
+                        <template x-for="(item, index) in items" :key="item.id">
+                            <div class="checklist-item" draggable="true" @dragstart="dragStart($event, section, item)">
+                                <input type="checkbox" x-model="item.checked">
+                                <textarea 
+                                    x-model="item.text"
+                                    placeholder="Enter your item..."
+                                    rows="1"
+                                    :id="item.id" 
+                                    @blur="handleTextareaBlur(section, item.id)" 
+                                    x-data="{ resize: () => { 
+                                        $el.style.height = 'auto';
+                                        $el.style.height = $el.scrollHeight + 'px' } }"
+                                    x-init="$nextTick(() => { resize() })"
+                                    @action.window="setTimeout(resize, 300)"
+                                    :disabled="item.checked"
+                                    x-transition
+                                    x-cloak></textarea>
+                                <button 
+                                    x-on:click="deleteItem(section, item.id)" 
+                                    x-show="item.checked" 
+                                    title="Delete item" 
+                                    class="icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" height="14" width="14">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                    <button x-on:click="addItem(section)" class="add-item">Add new item...</button>
+                </section>
+            </template>
+        </div>
+        <div
+            class="modal"
+            role="dialog"
+            tabindex="-1"
+            x-show="showModal"
+            
+            x-cloak
+            x-transition
+            >
+            <div class="modal-inner" x-on:click.away="showModal = false">
+                <div class="modal-header">
+                  <h3>Confirm deletion</h3>
+                  <button aria-label="Close" x-on:click="showModal=false" class="icon">✖</button>
+                </div>
+                <p>
+                    Are you sure you want to delete these items? This is irreversible.
+                </p>
+                <div class="modal-actions">
+                    <button @click="executeConfirmedAction" class="modal-button modal-button-confirm">Confirm</button>
+                    <button @click="showModal = false" class="modal-button modal-button-cancel">Cancel</button>
+                </div>
+              </div>
+        </div>
+        <div class="overlay" x-show="showModal" x-cloak></div>
+        <div x-ref="notificationComponent" 
+            x-data="notificationComponent()" 
+            class="notification-container"
+            @notify.window="addNotification($event.detail.message)">
+            <template x-for="notification in notifications" :key="notification.id">
+              <div x-show="notification.show" x-transition:enter="transition ease-out duration-300"
+                   x-transition:enter-start="notification-enter-start"
+                   x-transition:enter-end="notification-enter-end"
+                   x-transition:leave-start="notification-enter-end"
+                   x-transition:leave-end="notification-enter-start"
+                   class="notification" @click="dismissNotification(notification.id)">
+                <p x-text="notification.message"></p>
+              </div>
+            </template>
+          </div>
+    </main>
 </body>
 <script>
-    let days;
-    let notes;
-    let isCtrlPressed = false;
-    const currentDate = new Date();
-    const svgIcons = {
-            delete: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>',
-            cleanUp: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" width="20" height="20" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>',
-            light: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" class="icon"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" /></svg>',
-            dark: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20" class="icon"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" /></svg>',
-            day: '<svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" d="M17,2 C17.5522847,2 18,2.44771525 18,3 L18,4 L19,4 C20.6568542,4 22,5.34314575 22,7 L22,19 C22,20.6568542 20.6568542,22 19,22 L5,22 C3.34314575,22 2,20.6568542 2,19 L2,7 C2,5.34314575 3.34314575,4 5,4 L6,4 L6,3 C6,2.44771525 6.44771525,2 7,2 C7.55228475,2 8,2.44771525 8,3 L8,4 L16,4 L16,3 C16,2.44771525 16.4477153,2 17,2 Z M20,12 L4,12 L4,19 C4,19.5522847 4.44771525,20 5,20 L19,20 C19.5522847,20 20,19.5522847 20,19 L20,12 Z M17,14 C17.5522847,14 18,14.4477153 18,15 L18,17 C18,17.5522847 17.5522847,18 17,18 L15,18 C14.4477153,18 14,17.5522847 14,17 L14,15 C14,14.4477153 14.4477153,14 15,14 L17,14 Z M6,6 L5,6 C4.44771525,6 4,6.44771525 4,7 L4,10 L20,10 L20,7 C20,6.44771525 19.5522847,6 19,6 L18,6 L18,7 C18,7.55228475 17.5522847,8 17,8 C16.4477153,8 16,7.55228475 16,7 L16,6 L8,6 L8,7 C8,7.55228475 7.55228475,8 7,8 C6.44771525,8 6,7.55228475 6,7 L6,6 Z"></path> </g></svg>',
-            week: '<svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" d="M5,22 C3.34314575,22 2,20.6568542 2,19 L2,7 C2,5.34314575 3.34314575,4 5,4 L6,4 L6,3 C6,2.44771525 6.44771525,2 7,2 C7.55228475,2 8,2.44771525 8,3 L8,4 L16,4 L16,3 C16,2.44771525 16.4477153,2 17,2 C17.5522847,2 18,2.44771525 18,3 L18,4 L19,4 C20.6568542,4 22,5.34314575 22,7 L22,19 C22,20.6568542 20.6568542,22 19,22 L5,22 Z M8,17 L4,17 L4,19 C4,19.5522847 4.44771525,20 5,20 L8,20 L8,17 Z M14,17 L10,17 L10,20 L14,20 L14,17 Z M20,17 L16,17 L16,20 L19,20 C19.5522847,20 20,19.5522847 20,19 L20,17 Z M8,12 L4,12 L4,15 L8,15 L8,12 Z M14,12 L10,12 L10,15 L14,15 L14,12 Z M20,12 L16,12 L16,15 L20,15 L20,12 Z M6,6 L5,6 C4.44771525,6 4,6.44771525 4,7 L4,10 L20,10 L20,7 C20,6.44771525 19.5522847,6 19,6 L18,6 L18,7 C18,7.55228475 17.5522847,8 17,8 C16.4477153,8 16,7.55228475 16,7 L16,6 L8,6 L8,7 C8,7.55228475 7.55228475,8 7,8 C6.44771525,8 6,7.55228475 6,7 L6,6 Z"></path> </g></svg>'
-        }
-
-    function initialize() {
-        initializeTheme();
-        initializeDisplayMode();
-        createForm();
-        makeSectionClickable();
-        highlightCurrentDay(),
-        updateElementReferences();
-        displayCurrentDate();
-        loadAllChecklists();
-        addIconsToNotes();
-        document.getElementById('load-file-button').addEventListener('click', function() {
-            document.getElementById('file-input').click();
-        });
-    }
-
-    function calculateSettingAsThemeString({ localStorageTheme, systemSettingDark }) {
-        if (localStorageTheme !== null) {
-            return localStorageTheme;
-        }
-        if (systemSettingDark.matches) {
-            return "dark";
-        }
-        return "light";
-    }
-
-    function updateButton({ buttonEl, isDark }) {
-        const label = isDark ? "Change to light theme" : "Change to dark theme";
-        const iconHtml = isDark ? svgIcons.light : svgIcons.dark;
-        buttonEl.setAttribute("aria-label", label);
-        buttonEl.setAttribute("title", label);
-        buttonEl.innerHTML = iconHtml;
-    }
-
-    function updateThemeOnHtmlEl({ theme }) {
-        document.querySelector("html").setAttribute("data-theme", theme);
-    }
-
-    function initializeTheme() {
-        const button = document.querySelector("[data-theme-toggle]");
-        const localStorageTheme = localStorage.getItem("theme");
-        const systemSettingDark = window.matchMedia("(prefers-color-scheme: dark)");
-
-        let currentThemeSetting = calculateSettingAsThemeString({ localStorageTheme, systemSettingDark });
-
-        updateButton({ buttonEl: button, isDark: currentThemeSetting === "dark" });
-        updateThemeOnHtmlEl({ theme: currentThemeSetting });
-
-        button.addEventListener("click", (event) => {
-            const newTheme = currentThemeSetting === "dark" ? "light" : "dark";
-
-            localStorage.setItem("theme", newTheme);
-            updateButton({ buttonEl: button, isDark: newTheme === "dark" });
-            updateThemeOnHtmlEl({ theme: newTheme });
-
-            currentThemeSetting = newTheme;
-        }); 
-
-    }
-
-    function updateDisplayButton({ buttonEl, isMobile }) {
-        const label = isMobile ? "Change to week view" : "Change to day view";
-        const iconHtml = isMobile ? svgIcons.week : svgIcons.day;
-        buttonEl.setAttribute("aria-label", label);
-        buttonEl.setAttribute("title", label);
-        buttonEl.innerHTML = iconHtml;
-    }
-
-    function toggleMobileClass() {
-        const htmlElement = document.documentElement;
-        htmlElement.classList.toggle('mobile');
-    }
-
-    function initializeDisplayMode() {
-        const htmlElement = document.documentElement;
-        const button = document.querySelector("[data-mobile-toggle]");
-        const isMobile = htmlElement.classList.contains('mobile');
-
-        updateDisplayButton({ buttonEl: button, isMobile: isMobile });
-
-        button.addEventListener("click", () => {
-            // Here you toggle the class on the html element and update the button
-            toggleMobileClass();
-            const isNowMobile = htmlElement.classList.contains('mobile');
-            updateDisplayButton({ buttonEl: button, isMobile: isNowMobile });
-
-            // Optionally, save this setting to localStorage if you want to remember the mode
-            localStorage.setItem("displayMode", isNowMobile ? "mobile" : "desktop");
-        });
-    }
-
-    function updateElementReferences() {
-        days = Array.from(document.querySelectorAll(".day"));
-        notes = Array.from(document.querySelectorAll(".notes"));
-    }
-
-    function createForm() {
-        const daysAndMonths = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Weekend", "This month", "Next month"];
-        const plan = document.querySelector('.plan');
-        daysAndMonths.forEach(section => plan.appendChild(createSection(section)));
-    }
-    
-    function getMonthName(type) {
-        const monthNames = ["January", "February", "March", "April", "May", "June",
-                            "July", "August", "September", "October", "November", "December"];
-        let monthIndex = currentDate.getMonth(); // Use the existing currentDate variable
-
-        if (type === "next") {
-            monthIndex = (monthIndex + 1) % 12; // Increment month index for 'next', adjust for year wrap-around
-        }
-
-        return monthNames[monthIndex];
-    }
-
-    function createSection(sectionName) {
-        const isMonth = sectionName.includes("month"); // Check if the section is actually a month
-        const noteId = sectionName.toLowerCase().replace(/\s+/g, ''); // Remove spaces for id
-
-        const section = document.createElement('section');
-        section.className = isMonth ? 'notes month' : 'notes day';
-        section.dataset.day = noteId;
-        section.addEventListener('dragover', handleDragOver);
-        section.addEventListener('drop', (e) => handleDrop(e, noteId));
-        section.addEventListener('dragenter', handleDragEnter);
-        section.addEventListener('dragleave', handleDragLeave);
-
-        const heading = document.createElement('span');
-        heading.className = 'heading';
-        if (isMonth) {
-            const monthType = sectionName.includes("Next") ? "next" : "this";
-            heading.textContent = getMonthName(monthType);
-        } else {
-            heading.textContent = sectionName;
-        }
-        
-        const checklistDiv = document.createElement('div');
-        checklistDiv.id = noteId;
-        checklistDiv.className = 'checklist';
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.id = `${noteId}-new-item`;
-        input.placeholder = 'Add new item...';
-        input.onkeypress = function(event) { return handleKeyPress(event, noteId); };
-
-        section.appendChild(heading);
-        section.appendChild(checklistDiv);
-        section.appendChild(input);
-
-        return section;
-    }
-
-    function highlightCurrentDay() {
-        const currentDay = currentDate.toLocaleDateString('en-us', { weekday: 'long' }).toLowerCase();
-        const isWeekend = currentDate.getDay() === 6 || currentDate.getDay() === 0; // 6 = Saturday, 0 = Sunday
-        const dayElements = document.querySelectorAll('.day');
-
-        dayElements.forEach((day) => {
-            day.classList.remove('current-day');
-            if ((isWeekend && day.dataset.day === 'weekend') || day.dataset.day === currentDay) {
-                day.classList.add('current-day');
-            }
-        });
-    }
-
-    function handleKeyPress(event, noteId) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            addChecklistItem(noteId);
-            return false;
-        }
-        return true;
-    }
-
-    function addChecklistItem(noteId, text = '', checked = false, index = null) {
-        const checklist = document.getElementById(noteId);
-
-        // Determine the new item ID
-        const newItemId = noteId + '-item' + (index !== null ? index : checklist.querySelectorAll('input[type="checkbox"]').length);
-
-        // Create a wrapper div for checkbox and label
-        const itemWrapper = document.createElement('div');
-        itemWrapper.className = 'checklist-item';
-        itemWrapper.setAttribute('draggable', true);
-        itemWrapper.addEventListener('dragstart', (e) => handleDragStart(e, noteId));
-
-        // Create checkbox
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = newItemId;
-        checkbox.checked = checked;
-
-        // Create label
-        const label = document.createElement('label');
-        label.htmlFor = newItemId;
-        label.textContent = text || document.getElementById(noteId + '-new-item').value;
-
-        // Create delete icon
-        const deleteIcon = createItemDeleteIcon(noteId, checkbox.id);
-        if (checked) {
-            deleteIcon.style.display = 'inline'; // Show if item is already checked
-        }
-
-        // Add checkbox, label, and delete icon to the wrapper div
-        itemWrapper.appendChild(checkbox);
-        itemWrapper.appendChild(label);
-        itemWrapper.appendChild(deleteIcon);
-
-        // Add the wrapper div to the checklist
-        checklist.appendChild(itemWrapper);
-
-        // Add event listener to the new checkbox for showing/hiding delete icon and saving state when changed
-        checkbox.addEventListener('change', function() {
-            deleteIcon.style.display = this.checked ? 'inline' : 'none';
-            saveChecklistState(noteId);
-        });
-
-        // Add click event listener to label for editing
-        label.addEventListener('click', function() {
-            if (!checkbox.checked) {
-                editItemText(label, noteId);
-            }
-        });
-
-        if (text === '') {
-            // Clear input field if this is a new item
-            document.getElementById(noteId + '-new-item').value = '';
-        }
-
-        saveChecklistState(noteId); // Save state after adding new item
-    }
-
-    function editItemText(label, noteId) {
-        const currentText = label.textContent;
-        const input = document.createElement('textarea');
-        input.classList.add('edit-input');
-        input.type = 'text';
-        input.rows = '4';
-        input.value = currentText;
-        input.onblur = function() { updateItemText(label, input, noteId); }; // Update text when input loses focus
-        input.onkeypress = function(event) { 
-            if (event.key === 'Enter') {
-                updateItemText(label, input, noteId);
-            }
-        };
-
-        label.replaceWith(input);
-        input.focus();
-    }
-
-    function updateItemText(label, input, noteId) {
-        const newText = input.value.trim();
-        const itemId = label.htmlFor;
-        if (newText) {
-            label.textContent = newText;
-            input.replaceWith(label);
-            saveChecklistState(noteId); // Save updated text to local storage
-        } else {
-            deleteItem(noteId, itemId); // Handle empty input by deleting the Item
-        }
-    }
-
-    function makeSectionClickable() {
-        const notes = document.querySelectorAll('.notes'); 
-        notes.forEach(note => {
-            note.addEventListener('click', function(event) {
-                // Check if the click is not on an existing checkbox, label, input, or span
-                if (!event.target.matches('input, label', 'span')) {
-                    // Find the associated input field within this section
-                    const inputField = note.querySelector('input[type="text"]');
-                    inputField.focus(); // Set focus to the input field
-                }
-            });
-        });
-    }
-
-    function saveChecklistState(noteId) {
-        const checklist = document.getElementById(noteId);
-
-        if (!checklist) {
-            // Checklist element not found, return early
-            return;
-        }
-
-        const items = [];
-
-        checklist.querySelectorAll('input[type="checkbox"]').forEach((item, index) => {
-            items.push({
-                text: item.nextElementSibling.textContent, // Use nextElementSibling to access label
-                checked: item.checked
-            });
-        });
-        localStorage.setItem(noteId, JSON.stringify(items));
-    }
-
-    function createItemDeleteIcon(noteId, itemId) {
-        const deleteIcon = createIcon('delete', () => deleteItem(noteId, itemId), 'Delete item');
-        deleteIcon.style.display = 'none'; // Initially hidden
-        deleteIcon.style.marginLeft = '10px';
-        return deleteIcon;
-    }
-
-    function deleteItem(noteId, itemId) {
-        const checkbox = document.getElementById(itemId);
-        const itemWrapper = checkbox.parentElement;
-        itemWrapper.classList.add('remove');
-        setTimeout(() => {
-            itemWrapper.remove();
-            saveChecklistState(noteId);
-        }, 300);
-    }
-    
-    function deleteItemsForNote(noteId) {
-        const checklist = document.getElementById(noteId);
-        checklist.innerHTML = '';
-        saveChecklistState(noteId);
-    }
-
-    function confirmDeletion(action) {
-        if (confirm('Are you sure you want to delete this?')) {
-            action();
-        }
-    }
-
-    function deleteWeekItems() {
-        days.forEach(day => deleteItemsForNote(day.getAttribute('data-day')));
-    }
-
-    function deleteAllItems() {
-        notes.forEach(note => deleteItemsForNote(note.getAttribute('data-day')));
-    }
-
-    function removeCheckedItems(noteId) {
-        const checklist = document.getElementById(noteId);
-        const checkedItems = checklist.querySelectorAll('input[type="checkbox"]:checked');
-
-        checkedItems.forEach(checkbox => {
-            const itemWrapper = checkbox.parentElement;
-            itemWrapper.remove(); // Removes the checklist item
-        });
-
-        saveChecklistState(noteId); // Save the updated state to local storage
-    }
-
-    function addIconsToNotes() {
-        notes.forEach(note => {
-            const noteId = note.getAttribute('data-day');
-            const iconWrapper = document.createElement('div');
-            iconWrapper.classList.add('icon-wrapper');
-            const deleteIcon = createIcon('delete', () => deleteItemsForNote(noteId), 'Delete all items for this day');
-            const cleanUpIcon = createIcon('cleanUp', () => removeCheckedItems(noteId), 'Delete all checked items for this day');
-            const heading = note.querySelector('.heading');
-            iconWrapper.appendChild(deleteIcon);
-            iconWrapper.appendChild(cleanUpIcon);
-            heading.appendChild(iconWrapper);
-        });
-    }
-
-    function createIcon(iconName, onClickAction, tooltipText) {
-        const icon = document.createElement('span');
-        icon.innerHTML = svgIcons[iconName] || ''; 
-        icon.classList.add('icon', iconName);
-        icon.onclick = onClickAction;
-        icon.setAttribute('title', tooltipText);
-        return icon;
-    }
-
-    function loadChecklistState(noteId) {
-        const savedItems = JSON.parse(localStorage.getItem(noteId));
-        if (!savedItems) return;
-
-        savedItems.forEach((item, index) => {
-            addChecklistItem(noteId, item.text, item.checked, index);
-        });
-    }
-
-    function loadAllChecklists() {
-        notes.forEach(dayElement => {
-            const noteId = dayElement.querySelector('.checklist').id;
-            loadChecklistState(noteId);
-            addChangeEventListeners(noteId);
-        });
-    }
-
-    function addChangeEventListeners(noteId) {
-        const checklist = document.getElementById(noteId);
-        checklist.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', () => saveChecklistState(noteId));
-        });
-    }
-
-    function displayCurrentDate() {
-        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-        const formattedDate = currentDate.toLocaleDateString(undefined, options);
-        const infoDisplay = document.getElementById('info-display');
-        infoDisplay.textContent += formattedDate; // Append the date to existing content
-    }
-
-    function handleDragStart(event, noteId) {
-        const itemId = event.target.querySelector('input[type="checkbox"]').id;
-        event.dataTransfer.setData('text/plain', itemId);
-        event.dataTransfer.effectAllowed = 'move';
-        isCtrlPressed = event.ctrlKey || event.altKey;
-    }
-
-    function handleDragOver(event) {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-    }
-
-    function handleDragEnter(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.currentTarget.classList.add('highlighted');
-    }
-
-    function handleDragLeave(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        let targetElement = event.currentTarget;
-        if (!targetElement.contains(event.relatedTarget)) {
-            event.currentTarget.classList.remove('highlighted');
-        }
-    }
-
-    function handleDrop(event, noteId) {
-        event.preventDefault();
-        const itemId = event.dataTransfer.getData('text/plain');
-        const item = document.getElementById(itemId);
-        if (item) {
-            const originalChecklist = item.parentElement;
-            const checklist = document.getElementById(noteId);
-            const section = checklist.parentElement;
-            section.classList.remove('highlighted');
-
-            // Find the largest item number in the target checklist
-            let largestItemNumber = 0;
-            checklist.querySelectorAll('.checklist-item input[type="checkbox"]').forEach((checkbox) => {
-                const itemId = checkbox.id;
-                const itemNumber = parseInt(itemId.split('-item')[1]);
-                if (!isNaN(itemNumber) && itemNumber > largestItemNumber) {
-                    largestItemNumber = itemNumber;
-                }
-            });
-
-            // Calculate the new item id
-            const newItemId = noteId + '-item' + (largestItemNumber + 1);
-
-            // Clone the entire itemWrapper
-            const clonedItemWrapper = item.parentElement.cloneNode(true);
-
-            // Update the id of the checkbox and label in the clone
-            const clonedCheckbox = clonedItemWrapper.querySelector('input[type="checkbox"]');
-            const clonedLabel = clonedItemWrapper.querySelector('label');
-            if (clonedCheckbox) {
-                clonedCheckbox.id = newItemId;
-            }
-            if (clonedLabel) {
-                clonedLabel.setAttribute('for', newItemId);
-            }
-
-            // Append the clone to the new checklist
-            checklist.appendChild(clonedItemWrapper);
-
-            // Attach event listeners to the cloned item
-            clonedItemWrapper.querySelector('span').onclick = function() { deleteItem(noteId, newItemId); };
-            clonedItemWrapper.addEventListener('dragstart', (e) => handleDragStart(e, noteId));
-            clonedCheckbox.addEventListener('change', () => saveChecklistState(noteId));
-            clonedCheckbox.addEventListener('change', function() {
-                clonedItemWrapper.querySelector('span').style.display = this.checked ? 'inline' : 'none';
-                saveChecklistState(noteId);
-            });
-            clonedItemWrapper.querySelector('span').addEventListener
-
-            if (!isCtrlPressed) {deleteItem(originalChecklist.parentElement.id, itemId);}
-            isCtrlPressed = false;
-
-            saveChecklistState(noteId);
-        }
-    }
-
-    function downloadDataAsJson() {
-        let data = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key !== 'theme') { // Skip 'theme' key
-                data[key] = localStorage.getItem(key);
-            }
-        }
-
-        const jsonData = JSON.stringify(data, null, 2); // Convert to JSON
-        const blob = new Blob([jsonData], { type: 'application/json' });
-
-        const anchor = document.createElement('a');
-        anchor.href = URL.createObjectURL(blob);
-        anchor.download = 'data.json';
-        anchor.click();
-
-        URL.revokeObjectURL(anchor.href);
-    }
-
-    function loadDataFromJson() {
-        const fileInput = document.getElementById('file-input');
-        const file = fileInput.files[0];
-
-        if (file) {
-            deleteAllItems();
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const content = e.target.result;
-                try {
-                    const data = JSON.parse(content);
-                    Object.keys(data).forEach(key => {
-                        if (key !== 'theme') {
-                            localStorage.setItem(key, data[key]);
+    const firebaseConfig = {
+        apiKey: "AIzaSyCOPExhRD72_1z67DSJKZF7oYEpjIiASBY",
+        authDomain: "bullet-journal-thiousi.firebaseapp.com",
+        projectId: "bullet-journal-thiousi",
+        storageBucket: "bullet-journal-thiousi.appspot.com",
+        messagingSenderId: "119285088636",
+        appId: "1:119285088636:web:4a59aac8e9feed013164f9"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function checklistComponent() {
+        return {
+            currentUser: null,
+            currentSectionIndex: 0,
+            sections: {
+                monday: [],
+                tuesday: [],
+                wednesday: [],
+                thursday: [],
+                friday: [],
+                weekend: [],
+                thisMonth: [],
+                nextMonth: []
+            },
+            
+            init() {
+                this.setCurrentDate();
+                Object.keys(this.sections).forEach((section, index) => {
+                        if (this.isCurrentSection(section)) {
+                            this.currentSectionIndex = index;
+                        }
+                });
+                this.setupSwipeGestures();
+            },
+            async handleUserAuthChange(user) {
+                this.currentUser = user;
+                    if (user) {
+                        console.log('User is signed in:', user.displayName);
+                        this.$dispatch('notify', { message: `Logged in successfully as ${user.displayName}`});
+                        await this.loadFromFirestore();
+                        this.setupFirestoreListener();
+                    } else {
+                        console.log('User is signed out');
+                        this.$dispatch('notify', { message: 'Logged out successfully' });
+                        this.loadFromLocalStorage();
+                    }
+            },
+            async loadFromFirestore() {
+                const userRef = firebase.firestore().collection("users").doc(this.currentUser.uid);
+                const snapshot = await userRef.get();
+                if (snapshot.exists) {
+                    const firestoreData = snapshot.data().sections;
+                    Object.keys(firestoreData).forEach(key => {
+                        if (this.sections[key]) {
+                            this.sections[key] = firestoreData[key];
                         }
                     });
-                    loadAllChecklists();
-                } catch (error) {
-                    console.error('Error parsing JSON:', error);
+                    console.log("Data loaded from Remote Storage.")
+                } else {
+                    await this.handleLocalStorageData();
                 }
-            };
+            },
+            loadFromLocalStorage() {
+                const localData = localStorage.getItem('bullet_journal_data');
+                if (localData) {
+                    const localStorageData = JSON.parse(localData);
+                    Object.keys(localStorageData).forEach(key => {
+                        if (this.sections[key]) {
+                            this.sections[key] = localStorageData[key];
+                        }
+                    });
+                }
+                console.log("Data loaded from Local Storage.")
+            },
+            async handleLocalStorageData() {
+                const localData = localStorage.getItem('bullet_journal_data');
+                if (localData) {
+                    const localStorageData = JSON.parse(localData);
+                    Object.keys(localStorageData).forEach(key => {
+                        if (this.sections[key]) {
+                            this.sections[key] = localStorageData[key];
+                        }
+                    });
+                    this.saveToStorage();
+                    console.log("Data loaded from Local Storage and saved to Remote Storage.")
+                }
+            },
+            setupFirestoreListener() {
+                const userRef = firebase.firestore().collection("users").doc(firebase.auth().currentUser.uid);
+                userRef.onSnapshot((doc) => {
+                    if (doc.exists && doc.data().sections) {
+                        // Map the Firestore document to the local sections object
+                        const updatedSections = doc.data().sections;
+                        Object.keys(updatedSections).forEach(key => {
+                            this.sections[key] = updatedSections[key];
+                        });
+                    }
+                });
+            },
+            executeAction(action) {
+                if (action == "scrollToCurrentSection") {
+                    this.scrollToCurrentSection(300)
+                }
+            },
 
-            reader.readAsText(file);
-        }
+            getMonthName(type) {
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                                    "July", "August", "September", "October", "November", "December"];
+                let monthIndex = new Date().getMonth(); // Get current month
+
+                if (type === "nextMonth") {
+                    monthIndex = (monthIndex + 1) % 12;
+                }
+
+                return monthNames[monthIndex];
+            },
+            addItemToChecklist(event, section) {
+                // Check if the click was not on an existing item
+                if (event.target === event.currentTarget) {
+                    // Logic to add a new item
+                    this.addItem(section);
+                }
+            },
+            addItem(section) {
+                const newItem = {
+                    id: self.crypto.randomUUID(),
+                    text: '',
+                    checked: false
+                };
+                this.sections[section].push(newItem);
+
+                this.$nextTick(() => {
+                    const textarea = document.getElementById(newItem.id);
+                    textarea.focus();
+                });
+            },
+            deleteItem(section, itemId) {
+                this.sections[section] = this.sections[section].filter(item => item.id !== itemId);
+                this.saveToStorage();
+            },
+            deleteItemsForSection(section) {
+                this.sections[section] = [];
+                this.saveToStorage();
+            },
+            removeCheckedItems(section) {
+                this.sections[section] = this.sections[section].filter(item => !item.checked);
+                this.saveToStorage();
+            },
+            deleteWeekItems() {
+                Object.keys(this.sections).forEach(section => {
+                    if (!section.includes('Month')) {
+                        this.sections[section] = [];
+                    }
+                });
+                this.saveToStorage();
+            },
+            deleteAllItems() {
+                Object.keys(this.sections).forEach(section => {
+                    this.sections[section] = [];
+                });
+                this.saveToStorage();
+            },
+            updateItem(section, itemId, newText) {
+                const item = this.sections[section].find(item => item.id === itemId);
+                if (item) {
+                    item.text = newText;
+                    this.saveToStorage();
+                }
+            },
+            handleTextareaBlur(section, itemId) {
+                const item = this.sections[section].find(item => item.id === itemId);
+                if (item) {
+                    if (!item.text.trim()) {
+                        this.deleteItem(section, itemId);
+                    } else {
+                        this.saveToStorage();
+                    }
+                }
+            },
+            autoResize(event) {
+                event.target.style.height = '16px'; // Reset to minimum height
+                const newHeight = Math.max(event.target.scrollHeight, 16);
+                event.target.style.height = newHeight + 'px';
+            },
+            saveToStorage() {
+                if (this.currentUser) {
+                    // Save the entire sections object to Firestore
+                    const userRef = firebase.firestore().collection("users").doc(this.currentUser.uid);
+                    userRef.set({ sections: this.sections })
+                        .then(() => console.log("Data saved successfully"))
+                        .catch(error => console.error("Error saving data:", error));
+                } else {
+                    // Save to localStorage
+                    localStorage.setItem('bullet_journal_data', JSON.stringify(this.sections));
+                }
+            },
+
+            draggingItem: null,
+            highlightedSection: null,
+            dragStart(event, section, item, index) {
+                this.draggingItem = { section, item, originalIndex: index };
+                event.dataTransfer.effectAllowed = "copyMove";
+            },
+            dragOver(event, section, index) {
+                event.preventDefault();
+                const targetSection = event.currentTarget.getAttribute('data-section');
+                this.highlightedSection = targetSection;
+            },
+            dragLeave(event) {
+                this.highlightedSection = null;
+            },
+            isHighlighted(section) {
+                return this.highlightedSection === section;
+            },
+            drop(event, targetSection) {
+                event.preventDefault();
+                const item = this.draggingItem.item;
+                const sourceSection = this.draggingItem.section;
+                const targetIndex = this.determineDropIndex(event.target);
+                const isCopyAction = event.ctrlKey || event.altKey;
+
+                if (isCopyAction) {
+                    this.copyItem(targetSection, targetIndex);
+                } else {
+                    this.moveItem(targetSection, targetIndex);
+                }
+                this.draggingItem = null;
+                this.highlightedSection = null;
+            },
+            copyItem(targetSection, targetIndex) {
+                const draggedItem = this.draggingItem.item;
+
+                const copiedItem = { ...draggedItem, id: self.crypto.randomUUID() };
+                if (targetIndex >= this.sections[targetSection].length) {
+                    this.sections[targetSection].push(copiedItem);
+                } else {
+                    // Otherwise, insert the copied item at the specific index
+                    this.sections[targetSection].splice(targetIndex, 0, copiedItem);
+                }
+                this.saveToStorage();
+            },
+            moveItem(targetSection, targetIndex) {
+                const draggedItem = this.draggingItem.item;
+                const sourceSection = this.draggingItem.section;
+
+                // Remove the item from its original section
+                this.sections[sourceSection] = this.sections[sourceSection].filter(item => item.id !== draggedItem.id);
+
+                // If the target index is greater than the length of the target section, append to the end
+                if (targetIndex >= this.sections[targetSection].length) {
+                    this.sections[targetSection].push(draggedItem);
+                } else {
+                    // Otherwise, insert at the specific index
+                    this.sections[targetSection].splice(targetIndex, 0, draggedItem);
+                }
+                this.saveToStorage();
+            },
+            determineDropIndex(dropTarget) {
+                // Check if the drop target or its parent is a checklist item
+                const checklistItem = dropTarget.classList.contains('checklist-item') ? dropTarget : dropTarget.closest('.checklist-item');
+
+                if (checklistItem) {
+                    const textarea = checklistItem.querySelector('textarea');
+                    const targetId = textarea.id;
+                    const section = this.draggingItem.section;
+                    return this.sections[section].findIndex(item => item.id === targetId);
+                }
+
+                // Default to appending at the end of the section
+                return this.sections[this.draggingItem.section].length;
+            },
+            
+            setCurrentDate() {
+                const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+                this.currentDate = new Date().toLocaleDateString(undefined, options);
+            },
+            currentDay() {
+                const currentDate = new Date();
+                return currentDate.toLocaleDateString('en-us', { weekday: 'long' }).toLowerCase();
+            },
+            isWeekend() {
+                const currentDate = new Date();
+                return currentDate.getDay() === 6 || currentDate.getDay() === 0; // 6 = Saturday, 0 = Sunday
+            },
+            isCurrentSection(day) {
+                const currentDay = this.currentDay();
+                return (this.isWeekend() && day === 'weekend') || day === currentDay;
+            },
+
+            showModal: false,
+            pendingAction: null,
+            confirmDeletion(action) {
+                this.showModal = true;
+                this.pendingAction = action;
+            },
+            executeConfirmedAction() {
+                if (this.pendingAction === 'deleteWeekItems') {
+                    this.deleteWeekItems();
+                    console.log("Week data deleted")
+                } else if (this.pendingAction === 'deleteAllItems') {
+                    this.deleteAllItems();
+                    console.log("All data deleted")
+                }
+                this.closeModal();
+            },
+            closeModal() {
+                this.showModal = false;
+                this.pendingAction = null;
+            },
+            setupSwipeGestures() {
+                var planContainer = document.querySelector('.plan');
+                var hammer = new Hammer(planContainer);
+                hammer.on('swipeleft swiperight', (ev) => {
+                    this.handleSwipeGesture(ev.type);
+                });
+                this.scrollToCurrentSection(100);
+            },
+            handleSwipeGesture(direction) {
+                const maxIndex = Object.keys(this.sections).length - 1;
+                if (direction === 'swipeleft' && this.currentSectionIndex < maxIndex) {
+                    this.currentSectionIndex++;
+                    this.scrollToCurrentSection(0);
+                } else if (direction === 'swiperight' && this.currentSectionIndex > 0) {
+                    this.currentSectionIndex--;
+                    this.scrollToCurrentSection(0);
+                } else {
+                    this.triggerBounceEffect(direction);
+                }
+            },
+            scrollToCurrentSection(timeout) {
+                setTimeout(() => {
+                    
+                    const currentSection = document.getElementById(`section-${this.currentSectionIndex}`);
+                    if (currentSection) {
+                        currentSection.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                    }
+                }, timeout)
+            },
+            triggerBounceEffect(direction) {
+                const planContainer = document.querySelector('.plan');
+                const bounceClass = direction === 'swipeleft' ? 'bounce-right-left' : 'bounce-left-right';
+                planContainer.classList.add(bounceClass);
+            
+                setTimeout(() => {
+                    planContainer.classList.remove(bounceClass);
+                }, 500); // Match this timeout with the animation duration
+            }
+        };
     }
 
-    initialize();
+    function authComponent() {
+        return {
+            isLoggedIn: false,
+
+            init() {
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        // User is signed in
+                        this.$dispatch('user-auth-changed', { user: user });
+                        this.isLoggedIn = true
+                    } else {
+                        // User is signed out
+                        this.$dispatch('user-auth-changed', { user: null });
+                        this.isLoggedIn = false
+                    }
+                });
+            },
+
+            login() {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                firebase.auth().signInWithPopup(provider)
+                    .then((result) => {
+                        // #TODO: Handle successful login
+                    }).catch((error) => {
+                        // #TODO: Handle errors
+                    });
+            },
+
+            logout() {
+                firebase.auth().signOut()
+                    .then(() => {
+                        // #TODO: Handle successful logout
+                    }).catch((error) => {
+                        // #TODO: Handle errors
+                    });
+            }
+        };
+    }
+
+    function themeToggleComponent() {
+        return {
+            isDark: window.matchMedia('(prefers-color-scheme: dark)').matches,
+
+            toggleTheme() {
+                this.isDark = !this.isDark;
+                document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+                this.$dispatch('notify', {
+                    message: `Theme changed to ${this.isDark ? 'dark' : 'light'} mode`
+                });
+            },
+
+            init() {
+                this.isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+                            window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+            }
+        };
+    }
+
+    function mobileToggleComponent() {
+        return {
+            isMobile: window.innerWidth <= 768,
+
+            toggleMobile() {
+                this.isMobile = !this.isMobile;
+                this.updateHtmlClass();
+                this.$dispatch('notify', {
+                    message: `Display changed to ${this.isMobile ? 'Mobile' : 'Desktop'} mode`
+                });
+            },
+
+            updateHtmlClass() {
+                document.documentElement.classList.toggle('mobile', this.isMobile);
+                if (this.isMobile) {
+                    this.$dispatch('action', {
+                        action: "scrollToCurrentSection"
+                    });
+                } else {
+                    this.$dispatch('action', {
+                        action: "displayModeChanged"
+                    });
+                }
+            },
+
+            init() {
+                this.updateHtmlClass();
+                let resizeTimer;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(() => {
+                        this.isMobile = window.innerWidth <= 768;
+                        this.updateHtmlClass();
+                    }, 250);
+                });
+            }
+        };
+    }
+
+    function notificationComponent() {
+        return {
+          notifications: [],
+      
+          addNotification(message) {
+            const id = Date.now(); // Simple ID for demo; consider a more robust ID system
+            const notification = { id, message, show: true };
+            this.notifications.push(notification);
+      
+            // Automatically dismiss notification after 5 seconds
+            setTimeout(() => {
+              this.dismissNotification(id);
+            }, 2000);
+          },
+      
+          dismissNotification(id) {
+            const index = this.notifications.findIndex(n => n.id === id);
+            if (index !== -1) {
+              this.notifications[index].show = false;
+            }
+          },
+        };
+      }
+      
 </script>
 </html>
