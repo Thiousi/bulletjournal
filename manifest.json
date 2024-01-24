@@ -6,7 +6,7 @@
     "display": "minimal-ui",
     "orientation": "portrait",
     "scope": "/",
-    "start_url": "/",
+    "start_url": "https://thiousi.github.io/bulletjournal/",
     "icons": [
       {
         "src": "images/icons/icon-72x72.png",
