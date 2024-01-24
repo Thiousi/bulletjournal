@@ -1,11 +1,11 @@
 {
     "name": "Bullet Journal",
     "short_name": "Bullet Journal",
-    "theme_color": "#030712",
+    "theme_color": "#fafaf9",
     "background_color": "#fafaf9",
     "display": "minimal-ui",
     "orientation": "portrait",
-    "scope": "/",
+    "scope": "https://thiousi.github.io/bulletjournal/",
     "start_url": "https://thiousi.github.io/bulletjournal/",
     "icons": [
       {
