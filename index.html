@@ -939,7 +939,7 @@
                 this.$dispatch('notify', {
                     message: `Theme changed to ${this.isDark ? 'dark' : 'light'} mode`
                 });
-                toggleManifestTheme();
+                this.toggleManifestTheme();
             },
             toggleManifestTheme() {
                 let lightOrDark = this.isDark ? 'dark' : 'light';
@@ -952,7 +952,7 @@
                 this.isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
                             window.matchMedia('(prefers-color-scheme: dark)').matches;
                 document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
-                toggleManifestTheme();
+                this.toggleManifestTheme();
             }
         };
     }
