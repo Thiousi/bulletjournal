@@ -938,6 +938,9 @@
                 this.$dispatch('notify', {
                     message: `Theme changed to ${this.isDark ? 'dark' : 'light'} mode`
                 });
+                toggleManifestTheme();
+            },
+            toggleManifestTheme() {
                 let lightOrDark = this.isDark ? 'dark' : 'light';
                 let themeColor = getComputedStyle(document.documentElement).getPropertyValue(`--color-theme-${lightOrDark}`);
                 document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
@@ -948,6 +951,7 @@
                 this.isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
                             window.matchMedia('(prefers-color-scheme: dark)').matches;
                 document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+                toggleManifestTheme();
             }
         };
     }
