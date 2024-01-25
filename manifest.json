@@ -1,12 +1,19 @@
 {
-    "name": "Bullet Journal",
-    "short_name": "Bullet Journal",
-    "theme_color": "#fafaf9",
     "background_color": "#fafaf9",
+    "dir": "ltr",
     "display": "fullscreen",
+    "name": "Bullet Journal",
     "orientation": "portrait",
     "scope": "https://thiousi.github.io/bulletjournal/",
+    "short_name": "Journal",
     "start_url": "https://thiousi.github.io/bulletjournal/",
+    "theme_color": "#fafaf9",
+    "id": "bulletjournal",
+    "description": "Bullet Journal Web App to define your goals for each day of the week, this month and the next. Get organized, do more.",
+    "lang": "en",
+    "categories": [
+      "productivity"
+    ],
     "icons": [
       {
         "src": "images/icons/windows11/SmallTile.scale-100.png",

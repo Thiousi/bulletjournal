@@ -19,9 +19,11 @@
         }
         :root {
             color-scheme: light dark;
+            --color-theme-light: #fafaf9;
+            --color-theme-dark: #18181b;
         }
         [data-theme="light"] {
-            --color-background: #fafaf9;
+            --color-background: var(--color-theme-light);
             --color-day-background: rgba(0,0,0, .075);
             --color-day-border: var(--color-background);
             --color-day-text: #030712;
@@ -32,7 +34,7 @@
             --color-success: #4ade80;
         }
         [data-theme="dark"] {
-            --color-background: #18181b;
+            --color-background: var(--color-theme-dark);
             --color-day-background: rgba(255,255,255, .075);
             --color-day-border: var(--color-background);
             --color-day-text: #ddd;
@@ -933,6 +935,9 @@
                 this.$dispatch('notify', {
                     message: `Theme changed to ${this.isDark ? 'dark' : 'light'} mode`
                 });
+                let lightOrDark = this.isDark ? dark : light;
+                let themeColor = getComputedStyle(document.documentElement).getPropertyValue(`--color-theme-${lightOrDark}`);
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
             },
 
             init() {
