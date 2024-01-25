@@ -852,6 +852,7 @@
                 var planContainer = document.querySelector('.plan');
                 var hammer = new Hammer(planContainer);
                 hammer.on('swipeleft swiperight', (ev) => {
+                    ev.gesture.preventDefault(); 
                     this.handleSwipeGesture(ev.type);
                 });
                 this.scrollToCurrentSection(100);
