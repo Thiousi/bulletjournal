@@ -2,7 +2,10 @@
 <html lang="en" data-theme="dark">
 <head>
     <title>Bullet Journal</title>
+    <meta name="description" content="Bullet Journal Web App to define your goals for each day of the week, this month and the next. Get organized, do more.">
     <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#fafaf9">
+    <meta name="theme-color" content="#fafaf9">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.4/dist/cdn.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
@@ -938,6 +941,7 @@
                 let lightOrDark = this.isDark ? 'dark' : 'light';
                 let themeColor = getComputedStyle(document.documentElement).getPropertyValue(`--color-theme-${lightOrDark}`);
                 document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
+                document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').setAttribute('content', themeColor);
             },
 
             init() {
