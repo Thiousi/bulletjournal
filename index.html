@@ -935,7 +935,7 @@
                 this.$dispatch('notify', {
                     message: `Theme changed to ${this.isDark ? 'dark' : 'light'} mode`
                 });
-                let lightOrDark = this.isDark ? dark : light;
+                let lightOrDark = this.isDark ? 'dark' : 'light';
                 let themeColor = getComputedStyle(document.documentElement).getPropertyValue(`--color-theme-${lightOrDark}`);
                 document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
             },
