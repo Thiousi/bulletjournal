@@ -562,6 +562,7 @@
     function checklistComponent() {
         return {
             currentUser: null,
+            currentDate: '',
             currentSectionIndex: 0,
             sections: {
                 monday: [],
@@ -609,32 +610,28 @@
                     });
                     console.log("Data loaded from Remote Storage.")
                 } else {
-                    await this.handleLocalStorageData();
+                    this.handleLocalStorageData();
                 }
             },
             loadFromLocalStorage() {
                 const localData = localStorage.getItem('bullet_journal_data');
-                if (localData) {
-                    const localStorageData = JSON.parse(localData);
-                    Object.keys(localStorageData).forEach(key => {
-                        if (this.sections[key]) {
-                            this.sections[key] = localStorageData[key];
-                        }
-                    });
+                if (!localData) {
+                    return false;
                 }
-                console.log("Data loaded from Local Storage.")
+                const localStorageData = JSON.parse(localData);
+                Object.keys(localStorageData).forEach(key => {
+                    if (this.sections[key]) {
+                        this.sections[key] = localStorageData[key];
+                    }
+                });
+                console.log("Data loaded from Local Storage.");
+                return true;
             },
-            async handleLocalStorageData() {
-                const localData = localStorage.getItem('bullet_journal_data');
-                if (localData) {
-                    const localStorageData = JSON.parse(localData);
-                    Object.keys(localStorageData).forEach(key => {
-                        if (this.sections[key]) {
-                            this.sections[key] = localStorageData[key];
-                        }
-                    });
+            handleLocalStorageData() {
+                // Seed an empty Firestore account from any existing local data.
+                if (this.loadFromLocalStorage()) {
                     this.saveToStorage();
-                    console.log("Data loaded from Local Storage and saved to Remote Storage.")
+                    console.log("Local Storage data synced to Remote Storage.");
                 }
             },
             firestoreUnsubscribe: null,
@@ -721,13 +718,6 @@
                 });
                 this.saveToStorage();
             },
-            updateItem(section, itemId, newText) {
-                const item = this.sections[section].find(item => item.id === itemId);
-                if (item) {
-                    item.text = newText;
-                    this.saveToStorage();
-                }
-            },
             handleTextareaBlur(section, itemId) {
                 const item = this.sections[section].find(item => item.id === itemId);
                 if (item) {
@@ -737,11 +727,6 @@
                         this.saveToStorage();
                     }
                 }
-            },
-            autoResize(event) {
-                event.target.style.height = '16px'; // Reset to minimum height
-                const newHeight = Math.max(event.target.scrollHeight, 16);
-                event.target.style.height = newHeight + 'px';
             },
             saveToStorage() {
                 if (this.currentUser) {
